@@ -1,0 +1,8 @@
+{
+  "model_name": "TF-IDF + LR",
+  "artifact": "tfidf_lr.joblib",
+  "dataset_rows": 1844,
+  "macro_f1": 0.1853102816916796,
+  "weighted_f1": 0.32512724579029767,
+  "nihilism_f1": 0.18181818181818182
+}

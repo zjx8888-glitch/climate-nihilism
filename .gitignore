@@ -1,0 +1,56 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+dist/
+build/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Secrets & local config
+.env
+.env.*
+*.pem
+secrets.json
+
+# Caches (incl. Hugging Face / transformers)
+.cache/
+**/.cache/
+.huggingface/
+**/.huggingface/
+
+# Large raw / weak-label dumps (regenerate locally)
+data/raw/*.csv
+data/weak_labels/auto_labeled_comments.csv
+data/weak_labels/llm_label_checkpoint.jsonl
+data/weak_labels/review_progress.json
+
+# Trained model artifacts (re-run training scripts)
+outputs/tfidf/models/*.joblib
+outputs/climatebert/*.joblib
+outputs/climatebert/finetuned_model/
+
+# Optional: very large embedding bundles from legacy combined training
+outputs/tfidf/models/embedding_lr.joblib
+
+# Logs
+*.log
+data/weak_labels/auto_label_run.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp

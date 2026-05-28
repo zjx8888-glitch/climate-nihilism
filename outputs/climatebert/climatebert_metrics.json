@@ -1,0 +1,364 @@
+{
+  "embed_model": "climatebert/distilroberta-base-climate-f",
+  "dataset_rows": 1845,
+  "nihilism_train_count": 66,
+  "train_size": 1290,
+  "val_size": 278,
+  "test_size": 277,
+  "approaches": {
+    "embedding_lr_multiclass": {
+      "accuracy": 0.3285198555956679,
+      "macro_f1": 0.23019891985409227,
+      "weighted_f1": 0.3497246453756731,
+      "per_class": {
+        "Climate action critique": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 10.0
+        },
+        "Climate apathy": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 4.0
+        },
+        "Climate denial": {
+          "precision": 0.3076923076923077,
+          "recall": 0.42105263157894735,
+          "f1": 0.35555555555555557,
+          "support": 19.0
+        },
+        "Climate denial critique": {
+          "precision": 0.5208333333333334,
+          "recall": 0.352112676056338,
+          "f1": 0.42016806722689076,
+          "support": 71.0
+        },
+        "Climate information": {
+          "precision": 0.5128205128205128,
+          "recall": 0.4166666666666667,
+          "f1": 0.45977011494252873,
+          "support": 48.0
+        },
+        "Climate nihilism": {
+          "precision": 0.3,
+          "recall": 0.3,
+          "f1": 0.3,
+          "support": 10.0
+        },
+        "Climate nihilism critique": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 2.0
+        },
+        "Climate optimism": {
+          "precision": 0.2222222222222222,
+          "recall": 0.4,
+          "f1": 0.2857142857142857,
+          "support": 5.0
+        },
+        "Not climate opinion": {
+          "precision": 0.16666666666666666,
+          "recall": 0.22727272727272727,
+          "f1": 0.19230769230769232,
+          "support": 22.0
+        },
+        "climate activism": {
+          "precision": 0.5652173913043478,
+          "recall": 0.4642857142857143,
+          "f1": 0.5098039215686274,
+          "support": 28.0
+        },
+        "climate anxiety": {
+          "precision": 0.15384615384615385,
+          "recall": 0.2222222222222222,
+          "f1": 0.18181818181818182,
+          "support": 9.0
+        },
+        "climate change importance": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 5.0
+        },
+        "climate opinion critique": {
+          "precision": 0.1,
+          "recall": 0.14285714285714285,
+          "f1": 0.11764705882352941,
+          "support": 14.0
+        },
+        "climate policy critique": {
+          "precision": 0.44,
+          "recall": 0.36666666666666664,
+          "f1": 0.4,
+          "support": 30.0
+        }
+      },
+      "nihilism_precision": 0.3,
+      "nihilism_recall": 0.3,
+      "nihilism_f1": 0.3,
+      "confusion_matrix": [
+        [
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          1,
+          3
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          0,
+          0,
+          8,
+          5,
+          0,
+          0,
+          0,
+          1,
+          2,
+          0,
+          1,
+          0,
+          2,
+          0
+        ],
+        [
+          2,
+          1,
+          6,
+          25,
+          7,
+          1,
+          1,
+          0,
+          11,
+          1,
+          1,
+          4,
+          8,
+          3
+        ],
+        [
+          1,
+          1,
+          6,
+          3,
+          20,
+          0,
+          1,
+          4,
+          5,
+          1,
+          1,
+          3,
+          2,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          1,
+          1,
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          1,
+          2,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          3,
+          2,
+          1,
+          3,
+          0,
+          1,
+          0,
+          5,
+          0,
+          1,
+          1,
+          2,
+          2
+        ],
+        [
+          3,
+          0,
+          0,
+          3,
+          1,
+          1,
+          0,
+          1,
+          3,
+          13,
+          1,
+          0,
+          0,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          2,
+          3,
+          0,
+          0,
+          0,
+          1,
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          2,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          3,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          2,
+          2,
+          0,
+          2,
+          2
+        ],
+        [
+          3,
+          0,
+          0,
+          3,
+          2,
+          1,
+          0,
+          1,
+          3,
+          2,
+          0,
+          2,
+          2,
+          11
+        ]
+      ],
+      "labels": [
+        "Climate action critique",
+        "Climate apathy",
+        "Climate denial",
+        "Climate denial critique",
+        "Climate information",
+        "Climate nihilism",
+        "Climate nihilism critique",
+        "Climate optimism",
+        "Not climate opinion",
+        "climate activism",
+        "climate anxiety",
+        "climate change importance",
+        "climate opinion critique",
+        "climate policy critique"
+      ]
+    },
+    "embedding_lr_binary_nihilism": {
+      "accuracy": 0.927797833935018,
+      "precision": 0.2222222222222222,
+      "recall": 0.4,
+      "f1": 0.2857142857142857,
+      "average_precision": 0.21445668924598676
+    },
+    "finetuned_multiclass": {
+      "skipped": true,
+      "reason": "Pass --finetune to run"
+    }
+  },
+  "error_analysis_summary": {
+    "false_positive_nihilism": 7,
+    "false_negative_nihilism": 7,
+    "confused_with_climate_anxiety": 5,
+    "confused_with_nihilism_critique": 0
+  },
+  "best_approach": "embedding_lr_multiclass"
+}
