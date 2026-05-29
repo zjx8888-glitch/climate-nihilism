@@ -1,0 +1,13 @@
+[theme]
+# The primary accent color for interactive elements (sliders, buttons, active multiselects)
+primaryColor = "#62c68dff"
+
+# The background color for the main content area
+backgroundColor = "#435546ff"
+
+# The background color for the sidebar
+secondaryBackgroundColor = "#7a8f7dff"
+
+textColor = "#FAFAFA" # Off-white
+
+font = "sans serif"
