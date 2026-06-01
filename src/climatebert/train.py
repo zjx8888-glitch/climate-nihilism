@@ -12,7 +12,8 @@ Splits: data/labeled/splits.json
 Outputs: outputs/climatebert/, outputs/predictions/, outputs/error_analysis/
 
 Usage:
-  python -m climatebert.train
+  python src/climatebert/train.py
+  python src/climatebert/train.py --dataset-version v2
   python src/climatebert/train.py --finetune --epochs 3
 """
 
@@ -47,11 +48,15 @@ if str(_SRC) not in sys.path:
 from common.label_utils import body_hash
 from common.paths import (
     CLIMATEBERT_OUT,
+    CLIMATEBERT_V2_OUT,
     ERROR_ANALYSIS_OUT,
     FINAL_TRAINING,
+    FINAL_TRAINING_V2,
     PREDICTIONS_OUT,
     RECOVERED_LABELED,
+    ROOT,
     SPLITS_JSON,
+    SPLITS_V2_JSON,
     RANDOM_STATE,
     ensure_project_dirs,
 )
@@ -64,17 +69,43 @@ FALLBACK_EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_TEXT_LEN = 512
 
 
-def load_labeled_data() -> pd.DataFrame:
-    path = RECOVERED_LABELED if RECOVERED_LABELED.exists() else FINAL_TRAINING
+def dataset_config(version: str) -> Dict[str, Any]:
+    if version == "v1":
+        return {
+            "version": "v1",
+            "training_csv": FINAL_TRAINING,
+            "splits_json": SPLITS_JSON,
+            "output_dir": CLIMATEBERT_OUT,
+            "mirror_predictions": True,
+        }
+    if version == "v2":
+        return {
+            "version": "v2",
+            "training_csv": FINAL_TRAINING_V2,
+            "splits_json": SPLITS_V2_JSON,
+            "output_dir": CLIMATEBERT_V2_OUT,
+            "mirror_predictions": False,
+        }
+    raise ValueError(f"Unknown dataset version: {version}. Use v1 or v2.")
+
+
+def load_labeled_data(cfg: Dict[str, Any]) -> pd.DataFrame:
+    path = cfg["training_csv"]
     if not path.exists():
+        if cfg["version"] == "v2":
+            raise FileNotFoundError(
+                f"Missing {path}. Run: python src/climatebert/prepare_v2_dataset.py"
+            )
         raise FileNotFoundError(
-            f"No dataset at {RECOVERED_LABELED} or {FINAL_TRAINING}. "
-            "Run: python -m labeling.recover_labeled_dataset"
+            f"No dataset at {path}. Run: python -m labeling.recover_labeled_dataset"
         )
     df = pd.read_csv(path, encoding="utf-8", low_memory=False)
     df["body"] = df["body"].fillna("").astype(str)
-    label_col = "label" if "label" in df.columns else "label_canonical"
-    df["label"] = df[label_col].map(normalize_label)
+    if "label" not in df.columns:
+        label_col = "label_canonical" if "label_canonical" in df.columns else "label_clean"
+        df["label"] = df[label_col].map(normalize_label)
+    else:
+        df["label"] = df["label"].map(normalize_label)
     df = df[df["label"].notna() & (df["body"].str.len() > 10)].copy()
     if "body_hash" not in df.columns:
         df["body_hash"] = df["body"].map(body_hash)
@@ -83,12 +114,13 @@ def load_labeled_data() -> pd.DataFrame:
     return df
 
 
-def apply_splits(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    if not SPLITS_JSON.exists():
-        raise FileNotFoundError(
-            f"Missing {SPLITS_JSON}. Run: python -m labeling.build_final_dataset"
-        )
-    meta = json.loads(SPLITS_JSON.read_text(encoding="utf-8"))
+def apply_splits(
+    df: pd.DataFrame, cfg: Dict[str, Any]
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    splits_path = cfg["splits_json"]
+    if not splits_path.exists():
+        raise FileNotFoundError(f"Missing {splits_path}.")
+    meta = json.loads(splits_path.read_text(encoding="utf-8"))
     train = df[df["body_hash"].isin(meta["train_hashes"])].copy()
     val = df[df["body_hash"].isin(meta["val_hashes"])].copy()
     test = df[df["body_hash"].isin(meta["test_hashes"])].copy()
@@ -186,6 +218,7 @@ def finetune_climatebert(
     model_name: str,
     epochs: int,
     batch_size: int,
+    output_dir: Path,
 ) -> Dict[str, Any]:
     from datasets import Dataset
     from transformers import (
@@ -224,9 +257,9 @@ def finetune_climatebert(
         batched=True,
     )
 
-    out_dir = CLIMATEBERT_OUT / "finetuned_model"
+    ft_dir = output_dir / "finetuned_model"
     args = TrainingArguments(
-        output_dir=str(out_dir),
+        output_dir=str(ft_dir),
         num_train_epochs=epochs,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size * 2,
@@ -257,12 +290,12 @@ def finetune_climatebert(
         compute_metrics=compute_metrics,
     )
     trainer.train()
-    trainer.save_model(str(out_dir))
-    tokenizer.save_pretrained(str(out_dir))
+    trainer.save_model(str(ft_dir))
+    tokenizer.save_pretrained(str(ft_dir))
 
     return {
         "type": "finetuned",
-        "model_dir": str(out_dir),
+        "model_dir": str(ft_dir),
         "tokenizer": tokenizer,
         "model": model,
         "id2label": id2label,
@@ -387,19 +420,89 @@ def build_error_analysis(
     return out
 
 
+def write_old_vs_new_comparison(new_metrics: Dict[str, Any], out_path: Path) -> None:
+    old_path = CLIMATEBERT_OUT / "climatebert_metrics.json"
+    old = {}
+    if old_path.exists():
+        old = json.loads(old_path.read_text(encoding="utf-8"))
+    old_mc = old.get("approaches", {}).get("embedding_lr_multiclass", {})
+    new_mc = new_metrics.get("approaches", {}).get("embedding_lr_multiclass", {})
+
+    def row(name: str, old_v: Any, new_v: Any) -> str:
+        return f"| {name} | {old_v} | {new_v} |"
+
+    lines = [
+        "# ClimateBERT: v1 vs v2 dataset comparison",
+        "",
+        "## Dataset",
+        row("Metric", "v1 (recovered)", "v2 (cleaned_data-2)"),
+        row("---", "---", "---"),
+        row("Total rows", old.get("dataset_rows", "—"), new_metrics.get("dataset_rows", "—")),
+        row(
+            "Climate nihilism count",
+            old.get("nihilism_train_count", "—"),
+            new_metrics.get("nihilism_train_count", "—"),
+        ),
+        row("Test size", old.get("test_size", "—"), new_metrics.get("test_size", "—")),
+        "",
+        "## Test metrics (embedding + LR multiclass)",
+        row("Metric", "v1", "v2"),
+        row("---", "---", "---"),
+        row("Accuracy", f"{old_mc.get('accuracy', 0):.3f}", f"{new_mc.get('accuracy', 0):.3f}"),
+        row("Macro F1", f"{old_mc.get('macro_f1', 0):.3f}", f"{new_mc.get('macro_f1', 0):.3f}"),
+        row("Weighted F1", f"{old_mc.get('weighted_f1', 0):.3f}", f"{new_mc.get('weighted_f1', 0):.3f}"),
+        row(
+            "Nihilism precision",
+            f"{old_mc.get('nihilism_precision', 0):.3f}",
+            f"{new_mc.get('nihilism_precision', 0):.3f}",
+        ),
+        row(
+            "Nihilism recall",
+            f"{old_mc.get('nihilism_recall', 0):.3f}",
+            f"{new_mc.get('nihilism_recall', 0):.3f}",
+        ),
+        row(
+            "Nihilism F1",
+            f"{old_mc.get('nihilism_f1', 0):.3f}",
+            f"{new_mc.get('nihilism_f1', 0):.3f}",
+        ),
+        "",
+        "## Takeaway",
+        "",
+        "v2 adds substantially more labeled data and **~12× more Climate nihilism examples**, "
+        "which should improve nihilism detection stability even if macro F1 shifts with class imbalance.",
+    ]
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="ClimateBERT training (Jinxi)")
+    parser.add_argument(
+        "--dataset-version",
+        choices=["v1", "v2"],
+        default="v1",
+        help="v1=recovered ~1.8k labels; v2=cleaned_data-2 ~16k labels",
+    )
     parser.add_argument("--finetune", action="store_true", help="Run transformer fine-tuning")
     parser.add_argument("--epochs", type=int, default=3)
-    parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--embed-model", type=str, default=CLIMATEBERT_MODEL)
     args = parser.parse_args()
+
+    cfg = dataset_config(args.dataset_version)
+    out_dir: Path = cfg["output_dir"]
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     ensure_project_dirs()
     sns.set_theme(style="whitegrid")
 
-    df = load_labeled_data()
-    train_df, val_df, test_df = apply_splits(df)
+    print(f"Dataset version: {cfg['version']}")
+    print(f"Training CSV: {cfg['training_csv']}")
+    print(f"Output dir: {out_dir}")
+
+    df = load_labeled_data(cfg)
+    train_df, val_df, test_df = apply_splits(df, cfg)
     labels_present = sorted(set(train_df["label"]) | set(test_df["label"]))
 
     print(f"Dataset: {len(df)} rows | nihilism train: {(train_df['label']==NIHILISM_FOCUS).sum()}")
@@ -413,6 +516,7 @@ def main() -> None:
     X_test = encode_texts(embedder, test_df["body"].tolist(), args.batch_size)
 
     metrics: Dict[str, Any] = {
+        "dataset_version": cfg["version"],
         "embed_model": embed_model_used,
         "dataset_rows": len(df),
         "nihilism_train_count": int((df["label"] == NIHILISM_FOCUS).sum()),
@@ -431,7 +535,7 @@ def main() -> None:
     metrics["approaches"]["embedding_lr_multiclass"] = mc_metrics
     joblib.dump(
         {"embedder_name": embed_model_used, "classifier": mc_clf, "type": "embedding_lr"},
-        CLIMATEBERT_OUT / "embedding_lr_multiclass.joblib",
+        out_dir / "embedding_lr_multiclass.joblib",
     )
 
     # --- Embeddings + LR binary nihilism ---
@@ -452,12 +556,12 @@ def main() -> None:
     }
     joblib.dump(
         {"embedder_name": embed_model_used, "classifier": bin_clf, "type": "binary_embedding_lr"},
-        CLIMATEBERT_OUT / "embedding_lr_binary_nihilism.joblib",
+        out_dir / "embedding_lr_binary_nihilism.joblib",
     )
     plot_nihilism_pr_curve(
         y_true_bin,
         bin_proba,
-        CLIMATEBERT_OUT / "climatebert_nihilism_pr_curve.png",
+        out_dir / "climatebert_nihilism_pr_curve.png",
     )
 
     # --- Optional fine-tune ---
@@ -466,14 +570,19 @@ def main() -> None:
         print("\n[3/3] ClimateBERT fine-tuning — multiclass")
         try:
             ft_bundle = finetune_climatebert(
-                train_df, val_df, embed_model_used, args.epochs, args.batch_size
+                train_df,
+                val_df,
+                embed_model_used,
+                args.epochs,
+                args.batch_size,
+                out_dir,
             )
             ft_preds, ft_scores = predict_finetuned(
                 ft_bundle, test_df["body"].tolist()
             )
             ft_metrics = evaluate_multiclass(y_true, ft_preds, labels_present)
             metrics["approaches"]["finetuned_multiclass"] = ft_metrics
-            joblib.dump(ft_bundle, CLIMATEBERT_OUT / "finetuned_bundle.joblib")
+            joblib.dump(ft_bundle, out_dir / "finetuned_bundle.joblib")
         except Exception as e:
             print(f"Fine-tuning skipped/failed: {e}")
             metrics["approaches"]["finetuned_multiclass"] = {"error": str(e)}
@@ -498,7 +607,7 @@ def main() -> None:
         y_true,
         y_pred_mc,
         labels_present,
-        CLIMATEBERT_OUT / "climatebert_confusion_matrix.png",
+        out_dir / "climatebert_confusion_matrix.png",
         f"ClimateBERT confusion matrix — {best_approach} (test)",
     )
 
@@ -516,15 +625,17 @@ def main() -> None:
             }
         )
     pred_df = pd.DataFrame(pred_rows)
-    pred_path = CLIMATEBERT_OUT / "climatebert_predictions.csv"
+    pred_path = out_dir / "climatebert_predictions.csv"
     pred_df.to_csv(pred_path, index=False)
-    pred_df.to_csv(PREDICTIONS_OUT / "climatebert_predictions.csv", index=False)
+    if cfg.get("mirror_predictions"):
+        pred_df.to_csv(PREDICTIONS_OUT / "climatebert_predictions.csv", index=False)
 
     # Error analysis (multiclass primary)
     err_df = build_error_analysis(test_df, y_pred_mc, best_approach)
-    err_path = CLIMATEBERT_OUT / "climatebert_error_analysis.csv"
+    err_path = out_dir / "climatebert_error_analysis.csv"
     err_df.to_csv(err_path, index=False)
-    err_df.to_csv(ERROR_ANALYSIS_OUT / "climatebert_error_analysis.csv", index=False)
+    if cfg.get("mirror_predictions"):
+        err_df.to_csv(ERROR_ANALYSIS_OUT / "climatebert_error_analysis.csv", index=False)
 
     # Summary slices for report
     metrics["error_analysis_summary"] = {
@@ -541,8 +652,13 @@ def main() -> None:
     }
     metrics["best_approach"] = best_approach
 
-    metrics_path = CLIMATEBERT_OUT / "climatebert_metrics.json"
+    metrics_path = out_dir / "climatebert_metrics.json"
     metrics_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+
+    if cfg["version"] == "v2":
+        write_old_vs_new_comparison(
+            metrics, out_dir / "old_vs_new_climatebert_results.md"
+        )
 
     print("\n=== ClimateBERT results (test set) ===")
     for name, m in metrics["approaches"].items():
@@ -555,7 +671,9 @@ def main() -> None:
     print(
         f"binary nihilism: P={bin_m['precision']:.3f} R={bin_m['recall']:.3f} F1={bin_m['f1']:.3f}"
     )
-    print(f"\nOutputs -> {CLIMATEBERT_OUT}")
+    print(f"\nOutputs -> {out_dir}")
+    if cfg["version"] == "v2":
+        print(f"Comparison -> {out_dir / 'old_vs_new_climatebert_results.md'}")
 
 
 if __name__ == "__main__":

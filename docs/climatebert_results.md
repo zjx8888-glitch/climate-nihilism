@@ -79,7 +79,64 @@ Summary counts: `error_analysis_summary` in metrics JSON.
 
 Climate nihilism is the project focus but remains the **smallest** high-priority class. Confusions with anxiety (“overwhelmed but engaged”) and nihilism critique (“pushing back on fatalism”) need more boundary examples. Additional human labels on ambiguous posts would improve both embedding+LR and fine-tuned heads more than tuning hyperparameters alone.
 
+## Experiment 1: Recovered manual labels (v1)
+
+See tables above. Artifacts: `outputs/climatebert/`.
+
+```bash
+python src/climatebert/train.py --dataset-version v1
+```
+
+---
+
+## Experiment 2: Larger labeled dataset (v2)
+
+### Why the new dataset is better
+
+- Source: `data/labeled/cleaned_data_2.csv` (`label_clean` column)
+- **~16,749** labeled comments after cleaning (vs **~1,844** in v1)
+- **~811** Climate nihilism examples (vs **~66** in v1) — **~12× more** nihilism training signal
+- Includes metadata: `id`, `subreddit.name`, `created_utc`, `sentiment`
+- Label normalization: `climate opinion` → `climate opinion critique`; `climate activism critique` → `Climate action critique`
+
+### Commands
+
+```bash
+python src/climatebert/prepare_v2_dataset.py
+python src/climatebert/train.py --dataset-version v2
+```
+
+Artifacts: `outputs/climatebert_v2/`  
+Comparison: `outputs/climatebert_v2/old_vs_new_climatebert_results.md`
+
+### Results (v2, test n=2,507)
+
+| Metric | v1 | v2 |
+|--------|-----|-----|
+| Dataset rows | 1,845 | **16,713** |
+| Nihilism examples | 66 | **811** |
+| Accuracy | 0.329 | **0.350** |
+| Macro F1 | 0.230 | 0.227 |
+| Weighted F1 | 0.350 | **0.398** |
+| Nihilism precision | 0.300 | 0.306 |
+| Nihilism recall | 0.300 | **0.557** |
+| Nihilism F1 | 0.300 | **0.395** |
+| Binary nihilism F1 | 0.286 | **0.325** (P=0.211, R=0.705) |
+
+### Did ClimateBERT improve?
+
+**Yes for nihilism detection:** nihilism F1 rose **0.30 → 0.40** and recall **0.30 → 0.56**, with **122 nihilism test examples** (vs 10 in v1). Macro F1 is similar (~0.23) because v2 is heavily imbalanced toward Climate information (~1,419 in test). See `outputs/climatebert_v2/old_vs_new_climatebert_results.md`.
+
+### Remaining limitations
+
+1. Class imbalance remains (Climate information is ~9k rows).
+2. Labels are still single-comment, no thread context.
+3. v2 quality depends on `label_clean` consistency across annotators.
+4. Fine-tuning on 16k rows is optional and computationally heavier.
+
+---
+
 ## Team boundaries
 
 - **Liu:** TF-IDF baseline → `src/tfidf/train.py` (TODO)
-- **Josh:** Streamlit demo → `app/streamlit_app.py` (TODO: load `outputs/predictions/`)
+- **Josh:** Streamlit demo → `app/streamlit_app.py` (TODO: load `outputs/predictions/` or v2 after validation)

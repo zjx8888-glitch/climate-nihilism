@@ -12,6 +12,8 @@ We classify Reddit comments into a fixed taxonomy of climate opinions. The resea
 
 ## Dataset Description
 
+> **Git:** Large CSVs and model outputs are not committed. See [data/README.md](data/README.md) for what to place locally.
+
 | Item | Location | Notes |
 |------|----------|--------|
 | Processed manual labels | `data/processed/preprocessed_comments_2000_to_label.csv` | ~2k rows, Excel recovery applied |
@@ -129,8 +131,28 @@ python src/preprocessing/inspect_datasets.py
 
 ### 2. ClimateBERT (Jinxi)
 
+**Train once** (saves pretrained classifiers to `outputs/climatebert_v2/`):
+
 ```bash
-python src/climatebert/train.py
+python src/climatebert/prepare_v2_dataset.py   # if v2 CSV not built yet
+python src/climatebert/train.py --dataset-version v2
+```
+
+Artifacts used for inference (keep locally; gitignored):
+
+- `outputs/climatebert_v2/embedding_lr_multiclass.joblib` — 14-class head  
+- `outputs/climatebert_v2/embedding_lr_binary_nihilism.joblib` — nihilism vs not  
+- `outputs/climatebert_v2/climatebert_metrics.json` — test metrics for demo captions  
+
+**Classify new text** (no retraining):
+
+```bash
+PYTHONPATH=src python -m demo.inference --text "Your sentence here..." --version v2
+```
+
+Optional: `export CLIMATEBERT_MODEL_VERSION=v2` (default auto-detects v2 if artifacts exist).
+
+```bash
 python src/climatebert/train.py --finetune --epochs 3   # optional
 ```
 
@@ -149,35 +171,35 @@ streamlit run app/streamlit_app.py
 
 #### ClimateBERT inference in demo
 
-The **ClimateBERT** panel in the Streamlit app uses real model outputs (Jinxi). The TF-IDF panel remains a placeholder until Liu connects it.
+The **ClimateBERT** panel loads **pretrained** `.joblib` weights (train once, then classify any new sentence). TF-IDF remains a placeholder until Liu connects it.
 
-**1. Train ClimateBERT** (creates required artifacts):
+**1. Train once** (recommended: v2):
 
 ```bash
-python src/climatebert/train.py
+python src/climatebert/train.py --dataset-version v2
 ```
 
-**2. Required files** (under `outputs/climatebert/`):
+**2. Required files** (under `outputs/climatebert_v2/`):
 
 | File | Purpose |
 |------|---------|
-| `embedding_lr_multiclass.joblib` | Embeddings + 14-class classifier |
-| `embedding_lr_binary_nihilism.joblib` | Binary nihilism vs not |
-| `climatebert_metrics.json` | Test F1 and nihilism metrics for captions |
+| `embedding_lr_multiclass.joblib` | 14-class classifier on ClimateBERT embeddings |
+| `embedding_lr_binary_nihilism.joblib` | Nihilism vs not (probability score) |
+| `climatebert_metrics.json` | Test metrics shown in the app |
 
-**3. Test inference from the command line:**
+**3. Test a sentence (CLI):**
 
 ```bash
-python -m src.demo.inference --text "We are past the point of no return."
+PYTHONPATH=src python -m demo.inference --text "We are past the point of no return." --version v2
 ```
 
-**4. Run the demo:**
+**4. Run the app** — sidebar lets you pick v1/v2 checkpoint:
 
 ```bash
 streamlit run app/streamlit_app.py
 ```
 
-Inference code: `src/demo/inference.py` (`predict_climatebert`, `load_climatebert_model`).
+Inference: `src/demo/inference.py` (`predict_climatebert`, `load_climatebert_model`).
 
 ---
 

@@ -2,15 +2,25 @@
 """
 ClimateBERT inference for the Streamlit demo (Jinxi).
 
-Usage:
-  python -m src.demo.inference --text "We are past the point of no return."
-  PYTHONPATH=src python -m demo.inference --text "..."
+Loads **pretrained** artifacts from ``outputs/climatebert/`` or
+``outputs/climatebert_v2/`` (no retraining required for new sentences).
+
+Train once:
+  python src/climatebert/train.py --dataset-version v2
+
+Then classify new text:
+  PYTHONPATH=src python -m demo.inference --text "Your comment here..."
+  streamlit run app/streamlit_app.py
+
+Environment:
+  CLIMATEBERT_MODEL_VERSION=v2   # or v1 (optional; auto-detects if unset)
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -22,49 +32,65 @@ _SRC = Path(__file__).resolve().parents[1]
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from common.paths import CLIMATEBERT_OUT
+from common.paths import climatebert_output_dir, resolve_climatebert_version
 from common.taxonomy import NIHILISM_FOCUS, TAXONOMY
 
-MULTICLASS_ARTIFACT = CLIMATEBERT_OUT / "embedding_lr_multiclass.joblib"
-BINARY_ARTIFACT = CLIMATEBERT_OUT / "embedding_lr_binary_nihilism.joblib"
-METRICS_FILE = CLIMATEBERT_OUT / "climatebert_metrics.json"
-
-MISSING_MSG = "Run `python src/climatebert/train.py` first."
-
-# In-process cache (safe to reuse across calls in CLI / Streamlit worker)
-_MODEL_CACHE: Optional[Dict[str, Any]] = None
-_METRICS_CACHE: Optional[Dict[str, Any]] = None
+# In-process cache keyed by model version
+_MODEL_CACHE: Dict[str, Dict[str, Any]] = {}
+_METRICS_CACHE: Dict[str, Dict[str, Any]] = {}
 
 
-def _require_multiclass_artifact() -> Path:
-    if not MULTICLASS_ARTIFACT.exists():
-        raise FileNotFoundError(MISSING_MSG)
-    return MULTICLASS_ARTIFACT
+def _artifact_paths(version: str) -> Dict[str, Path]:
+    out = climatebert_output_dir(version)
+    return {
+        "out_dir": out,
+        "multiclass": out / "embedding_lr_multiclass.joblib",
+        "binary": out / "embedding_lr_binary_nihilism.joblib",
+        "metrics": out / "climatebert_metrics.json",
+    }
 
 
-def load_climatebert_metrics() -> Dict[str, Any]:
+def _train_command(version: str) -> str:
+    return f"python src/climatebert/train.py --dataset-version {version}"
+
+
+def missing_model_message(version: str) -> str:
+    paths = _artifact_paths(version)
+    return (
+        f"No pretrained model at {paths['multiclass']}. "
+        f"Train once: `{_train_command(version)}`"
+    )
+
+
+def load_climatebert_metrics(version: Optional[str] = None) -> Dict[str, Any]:
     """Load test-set metrics from climatebert_metrics.json (cached)."""
-    global _METRICS_CACHE
-    if _METRICS_CACHE is not None:
-        return _METRICS_CACHE
-    if not METRICS_FILE.exists():
-        raise FileNotFoundError(MISSING_MSG)
-    _METRICS_CACHE = json.loads(METRICS_FILE.read_text(encoding="utf-8"))
-    return _METRICS_CACHE
+    ver = resolve_climatebert_version(version or os.environ.get("CLIMATEBERT_MODEL_VERSION"))
+    if ver in _METRICS_CACHE:
+        return _METRICS_CACHE[ver]
+    paths = _artifact_paths(ver)
+    if not paths["metrics"].exists():
+        raise FileNotFoundError(missing_model_message(ver))
+    data = json.loads(paths["metrics"].read_text(encoding="utf-8"))
+    data["_model_version"] = ver
+    _METRICS_CACHE[ver] = data
+    return data
 
 
-def load_climatebert_model() -> Dict[str, Any]:
+def load_climatebert_model(version: Optional[str] = None) -> Dict[str, Any]:
     """
-    Load SentenceTransformer + multiclass LR (+ binary nihilism LR if present).
+    Load SentenceTransformer + saved logistic-regression heads (pretrained).
 
-    Cached in-process; use ``st.cache_resource(load_climatebert_model)`` in Streamlit.
+    Cached in-process per version; use ``st.cache_resource`` in Streamlit.
     """
-    global _MODEL_CACHE
-    if _MODEL_CACHE is not None:
-        return _MODEL_CACHE
+    ver = resolve_climatebert_version(version or os.environ.get("CLIMATEBERT_MODEL_VERSION"))
+    if ver in _MODEL_CACHE:
+        return _MODEL_CACHE[ver]
 
-    _require_multiclass_artifact()
-    mc_bundle = joblib.load(MULTICLASS_ARTIFACT)
+    paths = _artifact_paths(ver)
+    if not paths["multiclass"].exists():
+        raise FileNotFoundError(missing_model_message(ver))
+
+    mc_bundle = joblib.load(paths["multiclass"])
     embedder_name = mc_bundle.get(
         "embedder_name", "climatebert/distilroberta-base-climate-f"
     )
@@ -73,17 +99,20 @@ def load_climatebert_model() -> Dict[str, Any]:
 
     embedder = SentenceTransformer(embedder_name)
     binary_clf = None
-    if BINARY_ARTIFACT.exists():
-        bin_bundle = joblib.load(BINARY_ARTIFACT)
+    if paths["binary"].exists():
+        bin_bundle = joblib.load(paths["binary"])
         binary_clf = bin_bundle.get("classifier")
 
-    _MODEL_CACHE = {
+    bundle = {
+        "model_version": ver,
         "embedder": embedder,
         "embedder_name": embedder_name,
         "multiclass_clf": mc_bundle["classifier"],
         "binary_clf": binary_clf,
+        "artifact_dir": str(paths["out_dir"]),
     }
-    return _MODEL_CACHE
+    _MODEL_CACHE[ver] = bundle
+    return bundle
 
 
 def _encode(model: Dict[str, Any], text: str) -> np.ndarray:
@@ -118,18 +147,19 @@ def _binary_nihilism_prob(model: Dict[str, Any], embedding: np.ndarray) -> Optio
 def predict_climatebert(
     text: str,
     model: Optional[Dict[str, Any]] = None,
+    version: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-  Run ClimateBERT embedding + classifiers on a single comment.
+    Classify one comment: 14-class label + nihilism probability.
 
-  Returns dict with prediction fields, or ``{"error": "<message>"}`` on failure.
+    Returns dict with prediction fields, or ``{"error": "<message>"}`` on failure.
     """
     text = str(text).strip()
     if not text:
         return {"error": "Empty text."}
 
     try:
-        bundle = model if model is not None else load_climatebert_model()
+        bundle = model if model is not None else load_climatebert_model(version=version)
     except FileNotFoundError as exc:
         return {"error": str(exc)}
 
@@ -145,7 +175,7 @@ def predict_climatebert(
         nihilism_probability = _binary_nihilism_prob(bundle, embedding)
 
         try:
-            metrics = load_climatebert_metrics()
+            metrics = load_climatebert_metrics(version=bundle.get("model_version"))
             mc_metrics = metrics.get("approaches", {}).get(
                 "embedding_lr_multiclass", {}
             )
@@ -157,6 +187,7 @@ def predict_climatebert(
 
         return {
             "error": None,
+            "model_version": bundle.get("model_version"),
             "predicted_label": predicted_label,
             "multiclass_confidence": multiclass_confidence,
             "nihilism_probability": nihilism_probability,
@@ -164,22 +195,38 @@ def predict_climatebert(
             "taxonomy_definition": TAXONOMY.get(predicted_label),
             "nihilism_f1_test": nihilism_f1_test,
             "embed_model": embed_model,
+            "is_climate_nihilism": predicted_label == NIHILISM_FOCUS,
         }
     except Exception as exc:
         return {"error": f"ClimateBERT inference failed: {exc}"}
 
 
+# Backward-compatible alias for streamlit_app.py
+MISSING_MSG = (
+    "No pretrained ClimateBERT model found. "
+    "Train once: `python src/climatebert/train.py --dataset-version v2`"
+)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="ClimateBERT demo inference")
     parser.add_argument("--text", required=True, help="Comment text to classify")
+    parser.add_argument(
+        "--version",
+        choices=["v1", "v2"],
+        default=None,
+        help="Model checkpoint (default: auto-detect v2 if present)",
+    )
     args = parser.parse_args()
 
-    out = predict_climatebert(args.text)
+    out = predict_climatebert(args.text, version=args.version)
     if out.get("error"):
         print(f"Error: {out['error']}", file=sys.stderr)
         sys.exit(1)
 
+    print(f"Model version:        {out.get('model_version', '?')}")
     print(f"Predicted label:      {out['predicted_label']}")
+    print(f"Climate nihilism?     {out.get('is_climate_nihilism')}")
     print(f"Multiclass confidence: {out['multiclass_confidence']:.3f}")
     if out["nihilism_probability"] is not None:
         print(f"Nihilism probability:  {out['nihilism_probability']:.3f}")

@@ -1,56 +1,120 @@
-# Python
+# =============================================================================
+# Climate Nihilism NLP — Git ignore
+# Track: source code, docs, requirements, small split/metadata JSON
+# Ignore: large CSVs, trained models, generated outputs, posters, caches
+# Regenerate: python src/climatebert/prepare_v2_dataset.py
+#             python src/climatebert/train.py --dataset-version v2
+# See data/README.md for required local files.
+# =============================================================================
+
+# --- Python ---
 .venv/
 venv/
+env/
 __pycache__/
 *.py[cod]
 *$py.class
 .Python
 *.egg-info/
+.eggs/
 dist/
 build/
+*.so
 
-# OS / editors
+# --- OS / editors ---
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
 
-# Notebooks
+# --- Notebooks ---
 .ipynb_checkpoints/
+*/.ipynb_checkpoints/
 
-# Secrets & local config
+# --- Secrets ---
 .env
 .env.*
 *.pem
 secrets.json
+credentials.json
 
-# Caches (incl. Hugging Face / transformers)
+# --- ML / Hugging Face caches ---
 .cache/
 **/.cache/
 .huggingface/
 **/.huggingface/
+transformers_cache/
 
-# Large raw / weak-label dumps (regenerate locally)
-data/raw/*.csv
-data/weak_labels/auto_labeled_comments.csv
-data/weak_labels/llm_label_checkpoint.jsonl
-data/weak_labels/review_progress.json
-
-# Trained model artifacts (re-run training scripts)
-outputs/tfidf/models/*.joblib
-outputs/climatebert/*.joblib
-outputs/climatebert/finetuned_model/
-
-# Optional: very large embedding bundles from legacy combined training
-outputs/tfidf/models/embedding_lr.joblib
-
-# Logs
+# --- Logs & temp ---
 *.log
-data/weak_labels/auto_label_run.log
-
-# Temporary files
 tmp/
 temp/
 *.tmp
+
+# =============================================================================
+# DATA — large files stay local (see data/README.md)
+# =============================================================================
+
+# Raw Reddit dumps
+data/raw/*
+!data/raw/README.md
+
+# Processed / labeled tables (regenerate or share via Drive, not Git)
+data/processed/*.csv
+data/labeled/*.csv
+
+# Weak-label corpora (often 100MB+)
+data/weak_labels/*.csv
+data/weak_labels/*.jsonl
+data/weak_labels/review_progress.json
+data/weak_labels/auto_label_run.log
+
+# Keep small reproducibility metadata
+!data/labeled/splits.json
+!data/labeled/splits_v2.json
+!data/labeled/dataset_v2_inspection.json
+
+# =============================================================================
+# OUTPUTS — regenerate with training / poster scripts
+# =============================================================================
+
+outputs/**
+
+# Optional: commit summary metrics only (uncomment to track)
+# !outputs/climatebert_v2/climatebert_metrics.json
+# !outputs/climatebert_v2/old_vs_new_climatebert_results.md
+
+# =============================================================================
+# MODEL ARTIFACTS (any path)
+# =============================================================================
+*.joblib
+*.pkl
+*.pickle
+*.pt
+*.pth
+*.onnx
+*.h5
+**/finetuned_model/
+**/checkpoint*/
+
+# =============================================================================
+# POSTER / DECK / COURSE PDFs (local deliverables)
+# =============================================================================
+*.pptx
+*.pptx.pdf
+Poster*.pdf
+Poster*.pptx
+CS_496_Proposal.pdf
+
+# Taxonomy reference PDF — keep local copy; do not commit binary
+data labels.pdf
+
+# =============================================================================
+# GENERATED POSTER FIGURES (regenerate)
+# =============================================================================
+# Covered by outputs/** — script:
+#   python src/climatebert/generate_poster_figures_v2.py
+#   python src/climatebert/generate_poster_layout_assets.py

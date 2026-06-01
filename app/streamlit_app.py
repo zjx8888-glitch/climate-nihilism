@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -10,29 +11,50 @@ _SRC = Path(__file__).resolve().parents[1] / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
+from common.paths import resolve_climatebert_version
 from demo.inference import (
     MISSING_MSG,
     load_climatebert_metrics,
     load_climatebert_model,
+    missing_model_message,
     predict_climatebert,
 )
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Climate Nihilism Dashboard", layout="wide")
 
+_DEFAULT_VER = resolve_climatebert_version(os.environ.get("CLIMATEBERT_MODEL_VERSION"))
+
 
 @st.cache_resource
-def _climatebert_bundle():
-    return load_climatebert_model()
+def _climatebert_bundle(model_version: str):
+    return load_climatebert_model(version=model_version)
 
 
 @st.cache_data
-def _climatebert_metrics():
-    return load_climatebert_metrics()
+def _climatebert_metrics(model_version: str):
+    return load_climatebert_metrics(version=model_version)
 
 # --- Header ---
 st.title("🌍 Climate Nihilism Tracking Dashboard")
 st.markdown("Monitor and analyze climate nihilism trends across social media platforms.")
+
+with st.sidebar:
+    st.subheader("ClimateBERT model")
+    model_version = st.selectbox(
+        "Checkpoint",
+        options=["v2", "v1"],
+        index=0 if _DEFAULT_VER == "v2" else 1,
+        help="Uses saved .joblib weights from outputs/climatebert_v2/ (or v1/). Train once; no retrain per query.",
+    )
+    st.caption(
+        f"Loads pretrained heads from `outputs/climatebert_{model_version}/` "
+        "(plus Hugging Face ClimateBERT embeddings on first run)."
+    )
+    if st.button("Clear model cache"):
+        st.cache_resource.clear()
+        st.cache_data.clear()
+        st.rerun()
 
 st.divider()
 
@@ -112,15 +134,19 @@ if st.button("Analyze Text"):
             st.subheader("🧠 ClimateBERT")
             cb: dict = {"error": "Unknown error."}
             try:
-                bundle = _climatebert_bundle()
-                _climatebert_metrics()
+                bundle = _climatebert_bundle(model_version)
+                _climatebert_metrics(model_version)
                 cb = predict_climatebert(user_text, model=bundle)
-            except FileNotFoundError as exc:
-                st.error(str(exc))
-                cb = {"error": str(exc)}
+            except FileNotFoundError:
+                st.error(missing_model_message(model_version))
+                st.code(
+                    f"python src/climatebert/train.py --dataset-version {model_version}",
+                    language="bash",
+                )
+                cb = {"error": MISSING_MSG}
 
             if cb.get("error"):
-                if MISSING_MSG not in cb.get("error", ""):
+                if "pretrained" not in cb.get("error", "").lower():
                     st.error(cb["error"])
             else:
                 nih_pct = (
@@ -128,16 +154,17 @@ if st.button("Analyze Text"):
                     if cb.get("nihilism_probability") is not None
                     else "N/A"
                 )
-                st.metric(label="Nihilism Score", value=nih_pct)
+                st.metric(label="Nihilism probability", value=nih_pct)
                 st.metric(
-                    label="Classification",
+                    label="Predicted class (14-way)",
                     value=cb["predicted_label"],
                 )
+                if cb.get("is_climate_nihilism"):
+                    st.warning("Predicted as **Climate nihilism**")
                 f1 = cb.get("nihilism_f1_test")
                 st.caption(
-                    f"Training F1-Score (nihilism, test): {f1:.3f}"
-                    if f1 is not None
-                    else "Training F1-Score: see climatebert_metrics.json"
+                    f"Model: {cb.get('model_version', model_version)} · "
+                    f"Test nihilism F1: {f1:.3f}" if f1 is not None else f"Model: {model_version}"
                 )
                 st.caption(
                     f"Multiclass confidence: {cb['multiclass_confidence']:.2f}"

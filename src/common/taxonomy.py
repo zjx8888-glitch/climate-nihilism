@@ -54,7 +54,7 @@ LABEL_ALIASES: Dict[str, str] = {
     "climate anxiety": "climate anxiety",
     "Climate anxiety": "climate anxiety",
     "climate optimism": "Climate optimism",
-    "climate activism critique": "climate opinion critique",
+    "climate activism critique": "Climate action critique",
     "climate opinion": "climate opinion critique",
     "Climate opinion": "climate opinion critique",
 }
