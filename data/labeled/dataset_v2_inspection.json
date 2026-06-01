@@ -1,0 +1,63 @@
+{
+  "row_count": 16751,
+  "columns": [
+    "Unnamed: 0",
+    "index",
+    "id",
+    "subreddit.id",
+    "subreddit.name",
+    "subreddit.nsfw",
+    "created_utc",
+    "body",
+    "sentiment",
+    "label",
+    "label_clean"
+  ],
+  "missing_label_clean": 2,
+  "empty_label_clean": 2,
+  "label_clean_distribution_raw": {
+    "climate denial critique": 473,
+    "climate opinion": 5,
+    "climate denial": 575,
+    "climate information": 9487,
+    "climate action critique": 796,
+    "climate opinion critique": 81,
+    "not climate opinion": 478,
+    "climate activism": 756,
+    "climate policy critique": 2338,
+    "climate apathy": 38,
+    "climate nihilism critique": 28,
+    "climate change importance": 407,
+    "climate nihilism": 811,
+    "climate anxiety": 427,
+    "climate optimism": 40,
+    "climate activism critique": 9
+  },
+  "duplicate_bodies": 31,
+  "short_bodies_le10": 4,
+  "removed_deleted_bodies": 0,
+  "rows_after_cleaning": 16713,
+  "label_distribution_canonical": {
+    "Climate denial critique": 473,
+    "climate opinion critique": 86,
+    "Climate denial": 574,
+    "Climate information": 9462,
+    "Climate action critique": 805,
+    "Not climate opinion": 469,
+    "climate activism": 756,
+    "climate policy critique": 2338,
+    "Climate apathy": 38,
+    "Climate nihilism critique": 28,
+    "climate change importance": 407,
+    "Climate nihilism": 811,
+    "climate anxiety": 426,
+    "Climate optimism": 40
+  },
+  "nihilism_count": 811,
+  "unmapped_label_clean_samples": [],
+  "split_sizes": {
+    "train": 11699,
+    "val": 2507,
+    "test": 2507
+  }
+}
