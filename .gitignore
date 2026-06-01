@@ -62,10 +62,6 @@ temp/
 data/raw/*
 !data/raw/README.md
 
-# Processed / labeled tables (regenerate or share via Drive, not Git)
-data/processed/*.csv
-data/labeled/*.csv
-
 # Weak-label corpora (often 100MB+)
 data/weak_labels/*.csv
 data/weak_labels/*.jsonl
@@ -86,6 +82,14 @@ outputs/**
 # Optional: commit summary metrics only (uncomment to track)
 # !outputs/climatebert_v2/climatebert_metrics.json
 # !outputs/climatebert_v2/old_vs_new_climatebert_results.md
+
+# =============================================================================
+# PRETRAINED DEMO BUNDLE (small zip — safe to commit for teammates)
+# =============================================================================
+models/*
+!models/README.md
+!models/README.txt
+!models/climatebert_v2_pretrained_demo.zip
 
 # =============================================================================
 # MODEL ARTIFACTS (any path)

@@ -100,6 +100,10 @@ Legacy shims at `src/train_climatebert.py`, `src/demo_app.py`, etc. forward to t
 
 ---
 
+**Teammates:** see [docs/teammate_app_setup.md](docs/teammate_app_setup.md) to run the app with the pretrained model (`models/climatebert_v2_pretrained_demo.zip`).
+
+---
+
 ## Setup & Dependencies
 
 ```bash
