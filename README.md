@@ -14,10 +14,8 @@ We classify Reddit comments into a fixed taxonomy of climate opinions. The resea
 
 ## Taxonomy Labels
 
-Based on this article: https://massreview.org/2022/07/18/climate-nihilism-and-charles-baudelaire/
-
 - Not climate opinion
-This describes posts that do not relate to climate change. 
+This describes posts that are not about climate change. 
 - climate activism
 Posts that urge people to help with climate change. This can include asking how individuals can help with climate change, or promoting projects centered around climate change or its effects.  
 - climate anxiety
@@ -29,17 +27,16 @@ The author of the post does not care about climate change.
 - Climate information
 An informational post about climate change. This could include quoting a news article without adding further opinions, or mentioning a natural disaster. 
 - Climate nihilism
-This is the opinion that climate change is inevitable and irreversible. This surpasses climate anxiety, in that the author is hopeless in stopping climate change. This results in feelings of hopelessness, the sentiment that no matter what we try to do, the climate will keep getting worse and we cannot stop it. It includes the sentiments:
-Humans are destined for catastrophe, and no actions can be done to stop it.
-The belief that humanity is on a negative trend 
+This is the opinion that climate change is inevitable and irreversible. This surpasses climate anxiety, in that the author is hopeless in stopping climate change. Climate nihilism includes the belief that any human action to help the climate is futile, resulting in feelings of hopelessness and disengagement. It includes the sentiments:
+Humans are destined for catastrophe, and action is either impossible or insufficient; Climate catastrophe has been years in the making, and the damage has already been dealt; Dismissing past actions that have been taken to slow climate change. 
 - Climate denial
 The opinion that climate change does not exist.
 - Climate optimism
-A post expressing the idea that climate change is improving. This could also express hope that leaders or individuals can improve the climate. 
+Expressing the idea that climate change is improving, or expressing hope/approval about current actions taken to slow climate change. This could also express hope that leaders or individuals can improve the climate. 
 - climate policy critique
-This is a critique of political policy related to climate change specifically. This includes how policies (or lack of policies) are hurting the climate, or if politicians are hurting climate change in their direct actions or inactions. 
+This is a critique of political policy related to climate change. This includes how policies (or lack of policies) are hurting the climate, or if politicians are hurting climate change through their direct actions or inactions. 
 - Climate action critique
-A critique on climate change action as a whole. This could include a company's actions towards climate change, AI data centers, etc.
+A critique on climate change action. This includes critiquing an action plan, actions taken, or intentions towards climate change. This could include a company's actions towards climate change, AI data centers, etc.
 - Climate denial critique
 A critique on those that deny climate change exists.
 - Climate nihilism critique
