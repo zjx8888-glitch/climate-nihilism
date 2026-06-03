@@ -1,43 +1,51 @@
-# Climate Nihilism Detection on Reddit
-
-**CS 496 / Northwestern** — NLP pipeline to detect climate-related opinions on Reddit, with emphasis on **Climate nihilism** vs **climate anxiety** vs **Climate nihilism critique** (14-class taxonomy).
-
----
+# Climate nihilism detection on Reddit
 
 ## Project Overview
 
-We classify Reddit comments into a fixed taxonomy of climate opinions. The research focus is detecting **Climate nihilism** (hopelessness / futility about stopping climate change) and distinguishing it from emotionally similar classes. See [docs/project_overview.md](docs/project_overview.md) for motivation, data choices, and workflow.
+We classify Reddit comments into a fixed taxonomy of climate opinions. The research focus is detecting **climate nihilism** (hopelessness / futility about stopping climate change) and distinguishing it from emotionally similar classes. See [docs/project_overview.md](docs/project_overview.md) for motivation, data choices, and workflow.
 
 ---
 
 ## Dataset Description
 
-> **Git:** Large CSVs and model outputs are not committed. See [data/README.md](data/README.md) for what to place locally.
-
-| Item | Location | Notes |
-|------|----------|--------|
-| Processed manual labels | `data/processed/preprocessed_comments_2000_to_label.csv` | ~2k rows, Excel recovery applied |
-| Recovered gold labels | `data/labeled/recovered_labeled_dataset.csv` | **1,845** rows, canonical labels |
-| Training merge | `data/labeled/final_training_dataset.csv` | **1,844** rows (deduped) |
-| Train/val/test splits | `data/labeled/splits.json` | 70 / 15 / 15, seed `42` |
-| Weak / silver labels | `data/weak_labels/auto_labeled_comments.csv` | Large-scale auto labels |
-| Raw unlabeled Reddit | `data/raw/preprocessed_comments_400000.csv` | Place file locally (see `data/raw/README.md`) |
-
-**Climate nihilism** examples in gold set: **66** (sparse — see limitations in reports).
+(TBA)
 
 ---
 
 ## Taxonomy Labels
 
-14 canonical labels defined in `src/common/taxonomy.py` (from `data labels.pdf`).
+Based on this article: https://massreview.org/2022/07/18/climate-nihilism-and-charles-baudelaire/
 
-| Label | Meaning (short) |
-|-------|------------------|
-| **climate anxiety** | Worry/fear; action still possible |
-| **Climate nihilism** | Hopelessness; action seen as futile |
-| **Climate nihilism critique** | Pushback against doomism |
-| **Climate denial** | Rejects climate science/consensus |
-| … | See taxonomy module for all 14 |
+- Not climate opinion
+This describes posts that do not relate to climate change. 
+- climate activism
+Posts that urge people to help with climate change. This can include asking how individuals can help with climate change, or promoting projects centered around climate change or its effects.  
+- climate anxiety
+A post that shows a fear of climate change, without necessarily being disheartened about beating it.  
+- climate change importance
+Posts that express the importance of climate change. This might not directly equate to activism, as expressing importance does not necessarily equate to urging action.
+- Climate apathy
+The author of the post does not care about climate change. 
+- Climate information
+An informational post about climate change. This could include quoting a news article without adding further opinions, or mentioning a natural disaster. 
+- Climate nihilism
+This is the opinion that climate change is inevitable and irreversible. This surpasses climate anxiety, in that the author is hopeless in stopping climate change. This results in feelings of hopelessness, the sentiment that no matter what we try to do, the climate will keep getting worse and we cannot stop it. It includes the sentiments:
+Humans are destined for catastrophe, and no actions can be done to stop it.
+The belief that humanity is on a negative trend 
+- Climate denial
+The opinion that climate change does not exist.
+- Climate optimism
+A post expressing the idea that climate change is improving. This could also express hope that leaders or individuals can improve the climate. 
+- climate policy critique
+This is a critique of political policy related to climate change specifically. This includes how policies (or lack of policies) are hurting the climate, or if politicians are hurting climate change in their direct actions or inactions. 
+- Climate action critique
+A critique on climate change action as a whole. This could include a company's actions towards climate change, AI data centers, etc.
+- Climate denial critique
+A critique on those that deny climate change exists.
+- Climate nihilism critique
+A critique on those that have a nihilistic view towards climate change. 
+- climate opinion critique
+A critique on other opinions that do not fit into the above topics. 
 
 ---
 
@@ -46,11 +54,10 @@ We classify Reddit comments into a fixed taxonomy of climate opinions. The resea
 | Owner | Scope | Entry points |
 |-------|--------|----------------|
 | **Jinxi Zhang** | ClimateBERT training, evaluation, report, predictions | `src/climatebert/` |
-| **Liu** | TF-IDF & classical baselines | `src/tfidf/` |
+| **Annie Liu** | preprocessing, exploratory data analysis, TF-IDF & classical baselines | `src/tfidf/` |
 | **Josh** | Streamlit demo & visualization | `app/streamlit_app.py` |
 | **Madeleine Worrall** | Preprocessing, cleaning, taxonomy, weak labeling | `src/preprocessing/`, `src/labeling/` |
 
-Full matrix: [docs/team_responsibilities.md](docs/team_responsibilities.md)
 
 ---
 
@@ -133,6 +140,11 @@ python src/labeling/auto_label_comments.py
 python src/preprocessing/inspect_datasets.py
 ```
 
+### 1.5 Data cleaning, exploratory data analysis (Annie)
+
+See src/preprocessing/cs_496_data_cleaning_eda.ipynb. 
+This produces all datasets under climate-nihilism/data.
+
 ### 2. ClimateBERT (Jinxi)
 
 **Train once** (saves pretrained classifiers to `outputs/climatebert_v2/`):
@@ -160,12 +172,9 @@ Optional: `export CLIMATEBERT_MODEL_VERSION=v2` (default auto-detects v2 if arti
 python src/climatebert/train.py --finetune --epochs 3   # optional
 ```
 
-### 3. TF-IDF baseline (Liu)
+### 3. TF-IDF baseline (Annie)
 
-```bash
-python src/tfidf/train.py                    # TODO(Liu): implement
-python src/tfidf/legacy_train_evaluate.py      # legacy reference
-```
+See file src/tfidf/cs_496_tf_idf_training_tuning.ipynb.
 
 ### 4. Demo (Josh)
 
