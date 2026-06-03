@@ -242,7 +242,7 @@ All trainers share **`data/labeled/splits.json`** — do not regenerate splits i
 | Model | Macro F1 (test) | Nihilism F1 | Doc |
 |-------|-----------------|-------------|-----|
 | ClimateBERT + LR | 0.230 | 0.300 | [climatebert_results.md](docs/climatebert_results.md) |
-| TF-IDF + LR (legacy) | 0.185 | 0.182 | [tfidf_results.md](docs/tfidf_results.md) |
+| TF-IDF + LR (baseline) | 0.28 | 0.48 | src/tfidf/cs_496_tf_idf_training_tuning.ipynb |
 
 Full comparison: [docs/final_results_summary.md](docs/final_results_summary.md), [outputs/reports/recovered_vs_old_results.md](outputs/reports/recovered_vs_old_results.md).
 
@@ -251,7 +251,7 @@ Full comparison: [docs/final_results_summary.md](docs/final_results_summary.md),
 ## Future Work
 
 - More **Climate nihilism** gold labels (class is still small)
-- Liu: migrate TF-IDF fully into `src/tfidf/train.py`
+- Annie: migrate TF-IDF fully into `src/tfidf/train.py`
 - Josh: integrate predictions + team visualizations in Streamlit
 - Madeleine: human review loop, quality filters on weak labels
 - Optional: ensemble or calibration across ClimateBERT + TF-IDF
