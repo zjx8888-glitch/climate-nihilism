@@ -42,7 +42,7 @@ from common.label_utils import (
     build_final_training_dataset,
     stratified_train_val_test,
 )
-from common.paths import FIGURES, FINAL_TRAINING, RANDOM_STATE, TFIDF_MODELS, TFIDF_OUT
+from common.paths import FIGURES, FINAL_TRAINING, RANDOM_STATE, TFIDF_MODELS, TFIDF_OUT, AUTO_LABELED
 from common.taxonomy import CANONICAL_LABELS, NIHILISM_FOCUS, PRIORITY_LABELS
 
 MODELS = TFIDF_MODELS

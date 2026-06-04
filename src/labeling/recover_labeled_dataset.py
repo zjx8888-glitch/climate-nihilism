@@ -32,6 +32,7 @@ from common.paths import (
     MANUAL_LABELED,
     MANUAL_LABELED_ALT,
     RECOVERED_LABELED,
+    AUTO_LABELED
 )
 from common.taxonomy import CANONICAL_LABELS, normalize_label
 

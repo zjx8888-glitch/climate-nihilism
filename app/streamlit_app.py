@@ -7,6 +7,17 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
+import joblib
+
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+# 2. Add the src directory so Python can find 'demo.inference'
+_SRC = Path(__file__).resolve().parents[1] / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+from common.paths import TFIDF_MODELS
 
 _SRC = Path(__file__).resolve().parents[1] / "src"
 if str(_SRC) not in sys.path:
@@ -41,6 +52,16 @@ def _climatebert_bundle():
 def _climatebert_metrics():
     return load_climatebert_metrics()
 
+@st.cache_resource
+def _tfidf_bundle():
+    """Loads the trained TF-IDF model bundle."""
+    # We default to the Logistic Regression model, but you can point this to best_model.json if preferred
+    model_path = TFIDF_MODELS / "tfidf_lr.joblib" 
+    
+    if not model_path.exists():
+        raise FileNotFoundError(f"TF-IDF model not found at {model_path}. Please run the training script.")
+        
+    return joblib.load(model_path)
 
 @st.cache_data
 def load_subreddit_data() -> pd.DataFrame:
@@ -309,10 +330,37 @@ if st.button("Analyze Text"):
 
         with model_col1:
             st.subheader("📊 TF-IDF Baseline")
-            # TODO(Liu): connect TF-IDF inference here
-            st.metric(label="Nihilism Score", value="45%")
-            st.metric(label="Classification", value="Frustration")
-            st.caption("Training F1-Score: 0.41")
+            try:
+                tfidf_bundle = _tfidf_bundle()
+                vec = tfidf_bundle["vectorizer"]
+                clf = tfidf_bundle["classifier"]
+                
+                # Vectorize the text and predict
+                X_trans = vec.transform([user_text])
+                pred_label = clf.predict(X_trans)[0]
+                
+                # Fetch probabilities if the classifier supports it (LR does, SVM doesn't)
+                nih_pct = "N/A"
+                if hasattr(clf, "predict_proba"):
+                    probs = clf.predict_proba(X_trans)[0]
+                    classes = list(clf.classes_)
+                    if "Climate nihilism" in classes:
+                        nih_index = classes.index("Climate nihilism")
+                        nih_pct = f"{probs[nih_index] * 100:.1f}%"
+                
+                st.metric(label="Nihilism Score", value=nih_pct)
+                st.metric(label="Classification", value=pred_label)
+                
+                if pred_label == "Climate nihilism":
+                    st.warning("⚠️ Predicted as **Climate nihilism**")
+                    
+                st.caption(f"Model type: {tfidf_bundle.get('type', 'tfidf_sklearn')}")
+                
+            except FileNotFoundError as exc:
+                st.error(str(exc))
+                st.code("python legacy_train_evaluate.py", language="bash")
+            except Exception as e:
+                st.error(f"Error running TF-IDF inference: {str(e)}")
 
         with model_col2:
             st.subheader("🧠 ClimateBERT")
