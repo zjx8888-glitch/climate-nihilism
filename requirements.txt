@@ -7,6 +7,7 @@ joblib>=1.3
 streamlit>=1.28
 sentence-transformers>=2.2
 openai>=1.30
+altair
 
 # Optional — ClimateBERT fine-tuning (needs ≥400 verified training rows):
 # transformers>=4.36
