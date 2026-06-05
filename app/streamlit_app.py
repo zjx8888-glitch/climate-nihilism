@@ -321,7 +321,7 @@ st.markdown(
 
 user_text = st.text_area(
     "Enter a post or comment:",
-    placeholder="e.g., What is the point of recycling if the corporations are just going to burn it all anyway?",
+    placeholder="e.g., It doesn't matter what we do anymore, the climate tipping points have already been crossed and human extinction from global warming is completely inevitable at this point.",
 )
 
 if st.button("Analyze Text"):
