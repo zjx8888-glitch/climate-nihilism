@@ -130,6 +130,8 @@ Set `PYTHONPATH=src` if using module imports: `python -m climatebert.train` (fro
 ### 1. Data pipeline (Madeleine)
 
 ```bash
+python src/preprocessing/preprocess_reddit.py
+python src/preprocessing/preprocess_twitter.py
 python src/labeling/recover_labeled_dataset.py
 python src/labeling/build_final_dataset.py
 # Optional:
